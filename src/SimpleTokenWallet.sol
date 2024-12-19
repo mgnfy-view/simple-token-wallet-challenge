@@ -29,8 +29,11 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
 
     /// @notice Sets the owner and initializes the EIP712 name and version variables.
     /// @param _owner The owner of the wallet.
-    constructor(address _owner) Ownable(_owner) EIP712("Simple Token Wallet", "1") {
-        if (_owner == address(0)) revert AddressZero();
+    /// @param _wrappedNativeToken The address of the wrapped native token.
+    constructor(address _owner, address _wrappedNativeToken) Ownable(_owner) EIP712("Simple Token Wallet", "1") {
+        if (_owner == address(0) || _wrappedNativeToken == address(0)) revert AddressZero();
+
+        i_wrappedNativeToken = _wrappedNativeToken;
     }
 
     /// @notice Enables the wallet to receive native token and wraps it.
@@ -44,7 +47,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     /// @param _token The token address.
     /// @param _amount The amount of token to deposit.
     function deposit(address _token, uint256 _amount) external {
-        transferTokensFrom(_token, msg.sender, _amount, address(this));
+        _transferTokensFrom(_token, msg.sender, _amount, address(this));
     }
 
     /// @notice Allows the owner to withdraw tokens from this wallet contract.
