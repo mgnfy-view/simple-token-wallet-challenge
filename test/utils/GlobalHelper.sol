@@ -39,12 +39,34 @@ contract GlobalHelper is Test {
         vm.deal(_to, _amount);
     }
 
-    function _depositToken(uint256 _amount) public {
-        token.mint(owner, _amount);
-
+    function _depositToken(address _token, uint256 _amount) public {
         vm.startPrank(owner);
-        token.approve(address(wallet), _amount);
-        wallet.deposit(address(token), _amount);
+
+        if (_token == address(wrappedNative)) {
+            _dealNativeToken(owner, _amount);
+            (bool success,) = payable(wallet).call{ value: _amount }("");
+            if (!success) revert TransferFailed();
+        } else {
+            token.mint(owner, _amount);
+            token.approve(address(wallet), _amount);
+            wallet.deposit(address(token), _amount);
+        }
+
+        vm.stopPrank();
+    }
+
+    function _approveToken(address _token, uint256 _amount) public {
+        vm.startPrank(owner);
+
+        if (_token == address(wrappedNative)) {
+            _dealNativeToken(owner, _amount);
+            wrappedNative.deposit{ value: _amount }();
+            wrappedNative.approve(address(wallet), _amount);
+        } else {
+            token.mint(owner, _amount);
+            token.approve(address(wallet), _amount);
+        }
+
         vm.stopPrank();
     }
 

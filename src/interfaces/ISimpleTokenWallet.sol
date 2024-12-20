@@ -7,6 +7,9 @@ pragma solidity 0.8.24;
 interface ISimpleTokenWallet {
     event NativeTokenWrapped(address by, uint256 indexed amount);
     event TokensTransferred(address indexed token, uint256 indexed amount, address indexed to);
+    event TokensTransferredFrom(
+        address indexed token, address indexed allowanceProvider, uint256 amount, address indexed to
+    );
 
     error AddressZero();
     error AmountZero();

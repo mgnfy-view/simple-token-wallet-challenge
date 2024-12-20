@@ -187,6 +187,8 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
         if (allowance < _amount) revert InsufficientAllowance(allowance, _amount);
 
         IERC20(_token).safeTransferFrom(_allowanceProvider, _to, _amount);
+
+        emit TokensTransferredFrom(_token, _allowanceProvider, _amount, _to);
     }
 
     /// @notice Verifies the signature for gas sponsored transfers.
