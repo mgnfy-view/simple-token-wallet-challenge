@@ -54,7 +54,7 @@
 
 This is a simple token wallet contract that allows you to manage your tokens - depost, withdraw, transfer tokens or use token allowance provided to the wallet. Additionally, it uses EIP712 structured signatures to enable gas sponsorship for token transfers.
 
-Some design choices that were made include:
+**Some design choices that were made include:**
 
 - Tracking token balances in mapping is gas inefficient. Also, if tokens are directly sent to the wallet without using the `deposit()` function, there will be a disparity between the actual balance held by the contract and the stored balance in the mapping. Thus, balaces are retrieved by querying the ERC20 token contract.
 - The native gas token is stored in the wrapped form (for example, ETH -> WETH). When native token is sent to the contract, it is automatically wrapped in the `receive()` function. This choice allows us to use the ERC20 functions for the native token, reducing additional code required for native token handling, and effectively decreasing the contract size (and thus deployment costs).
@@ -62,18 +62,19 @@ Some design choices that were made include:
 - EIP712 signatures enable gasless transfers. The wallet owner can sign transactions for withdrawals, token transfers, and using allowance, and these can be relayed by anyone to the wallet. This enables gas sponsorship and easier onboarding.
 - Ownership of the wallet is transferrable.
 
-Gas optimization:
+**Gas optimizations:**
 
 - Using custom errors instead of `require()` statements saves gas.
 - Token balances are dynamically determined, saving gas (sstore, sload not required).
-- Using immutable and private variables. Private variables have their own getters, saving a bit of gas.
+- Using immutable and private variables. Getters have been written for private variables separately, saving a bit of gas.
 
-
-Some security measures that were taken:
+**Some security measures that were taken:**
 
 - Critical functions like `withdraw()`, `transferTokens()`, `transferTokensFrom()` are guarded by the `onlyOwner` modifier.
 - Nonce and deadline values are used for gasless transfers. Nonce prevents replay attacks, and deadline ensures that signatures are valid only for a predefined time interval.
-- Using Openzeppelin's well audited and battle tested contracts for verifying signatures, and handling wallet ownership.  
+- Using Openzeppelin's well audited and battle tested contracts for verifying signatures, and handling wallet ownership.
+
+A sample deployment script has also been provided at `./script/DeploySimpleTokenWallet.s.sol`.
 
 ### Built With
 
