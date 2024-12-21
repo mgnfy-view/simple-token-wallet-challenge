@@ -54,6 +54,8 @@
 
 This is a simple token wallet contract that allows you to manage your tokens - depost, withdraw, transfer tokens, use token allowance provided to the wallet, and provide allowance to other addresses. Additionally, it uses EIP712 structured signatures to enable gas sponsorship for token transfers.
 
+Check out the YouTube demo video [here](https://youtu.be/muZSof7q1L4).
+
 **Some design choices that were made include:**
 
 - Tracking token balances in mapping is gas inefficient. Also, if tokens are directly sent to the wallet without using the `deposit()` function, there will be a disparity between the actual balance held by the contract and the stored balance in the mapping. Thus, balaces are retrieved by querying the ERC20 token contract.
