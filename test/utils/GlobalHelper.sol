@@ -75,6 +75,7 @@ contract GlobalHelper is Test {
         address _from,
         address _to,
         uint256 _amount,
+        bool _isApproval,
         uint256 _nonce,
         uint256 _deadline
     )
@@ -82,7 +83,7 @@ contract GlobalHelper is Test {
         view
         returns (bytes memory)
     {
-        bytes32 digest = wallet.getEncodedTransferDataHash(_token, _from, _to, _amount, _nonce, _deadline);
+        bytes32 digest = wallet.getEncodedTransferDataHash(_token, _from, _to, _amount, _isApproval, _nonce, _deadline);
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
 
         return abi.encodePacked(r, s, v);

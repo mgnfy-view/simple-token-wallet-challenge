@@ -52,7 +52,7 @@
 
 ## About The Project
 
-This is a simple token wallet contract that allows you to manage your tokens - depost, withdraw, transfer tokens or use token allowance provided to the wallet. Additionally, it uses EIP712 structured signatures to enable gas sponsorship for token transfers.
+This is a simple token wallet contract that allows you to manage your tokens - depost, withdraw, transfer tokens, use token allowance provided to the wallet, and provide allowance to other addresses. Additionally, it uses EIP712 structured signatures to enable gas sponsorship for token transfers.
 
 **Some design choices that were made include:**
 
@@ -65,6 +65,7 @@ This is a simple token wallet contract that allows you to manage your tokens - d
 **Gas optimizations:**
 
 - Using custom errors instead of `require()` statements saves gas.
+- Using external functions over public functions saves gas.
 - Token balances are dynamically determined, saving gas (sstore, sload not required).
 - Using immutable and private variables. Getters have been written for private variables separately, saving a bit of gas.
 

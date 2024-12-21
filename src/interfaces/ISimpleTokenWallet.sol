@@ -10,6 +10,7 @@ interface ISimpleTokenWallet {
     event TokensTransferredFrom(
         address indexed token, address indexed allowanceProvider, uint256 amount, address indexed to
     );
+    event Approved(address indexed token, address indexed spender, uint256 indexed amount);
 
     error AddressZero();
     error AmountZero();
@@ -21,6 +22,9 @@ interface ISimpleTokenWallet {
 
     function deposit(address _token, uint256 _amount) external;
     function withdraw(address _token, uint256 _amount) external;
+    function transferTokens(address _token, uint256 _amount, address _to) external;
+    function transferTokensFrom(address _token, address _allowanceProvider, uint256 _amount, address _to) external;
+    function approve(address _token, address _spender, uint256 _amount) external;
     function withdrawWithSignature(
         address _token,
         uint256 _amount,
@@ -48,8 +52,15 @@ interface ISimpleTokenWallet {
         bytes memory _signature
     )
         external;
-    function transferTokens(address _token, uint256 _amount, address _to) external;
-    function transferTokensFrom(address _token, address _allowanceProvider, uint256 _amount, address _to) external;
+    function approveWithSignature(
+        address _token,
+        address _spender,
+        uint256 _amount,
+        uint256 _nonce,
+        uint256 _deadline,
+        bytes memory _signature
+    )
+        external;
     function getWrappedNativeToken() external view returns (address);
     function getNextNonce() external view returns (uint256);
     function getTokenBalance(address _token) external view returns (uint256);
@@ -59,6 +70,7 @@ interface ISimpleTokenWallet {
         address _from,
         address _to,
         uint256 _amount,
+        bool _isApproval,
         uint256 _nonce,
         uint256 _deadline
     )

@@ -43,195 +43,6 @@ contract SimpleTokenWalletTest is GlobalHelper {
         assertEq(token.balanceOf(owner), amount);
     }
 
-    function test_withdrawingWithSignatureFailsIfInvalidSignaturePassed() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
-        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_withdrawingWithSignatureFailsIfInvalidNoncePassed() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce() + 1;
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), gasProvider, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
-        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_withdrawingWithSignatureFailsIfDeadlineHasPassed() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), gasProvider, amount, nonce, deadline);
-
-        skip(deadlineWindow + 1);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
-        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_withdrawingTokensWithSignatureSucceeds() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), gasProvider, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
-        vm.stopPrank();
-
-        assertEq(wallet.getTokenBalance(address(token)), 0);
-        assertEq(token.balanceOf(gasProvider), amount);
-    }
-
-    function test_transferingTokensWithSignatureFailsIfInvalidSignaturePassed() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), gasProvider, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
-        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensWithSignatureFailsIfInvalidNoncePassed() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce() + 1;
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
-        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensWithSignatureFailsIfDeadlineHasPassed() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, nonce, deadline);
-
-        skip(deadlineWindow + 1);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
-        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensWithSignatureSucceeds() public {
-        uint256 amount = 10 ether;
-        _depositToken(address(token), amount);
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensFromWithSignatureFailsIfInvalidSignaturePassed() public {
-        uint256 amount = 10 ether;
-        token.mint(owner, amount);
-        vm.startPrank(owner);
-        token.approve(address(wallet), amount);
-        vm.stopPrank();
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), address(wallet), gasProvider, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
-        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensFromWithSignatureFailsIfInvalidNoncePassed() public {
-        uint256 amount = 10 ether;
-        token.mint(owner, amount);
-        vm.startPrank(owner);
-        token.approve(address(wallet), amount);
-        vm.stopPrank();
-
-        uint256 nonce = wallet.getNextNonce() + 1;
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), owner, gasProvider, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
-        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensFromWithSignatureFailsIfDeadlineHasPassed() public {
-        uint256 amount = 10 ether;
-        token.mint(owner, amount);
-        vm.startPrank(owner);
-        token.approve(address(wallet), amount);
-        vm.stopPrank();
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), owner, gasProvider, amount, nonce, deadline);
-
-        skip(deadlineWindow + 1);
-
-        vm.startPrank(gasProvider);
-        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
-        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
-        vm.stopPrank();
-    }
-
-    function test_transferingTokensFromWithSignatureSucceeds() public {
-        uint256 amount = 10 ether;
-        token.mint(owner, amount);
-        vm.startPrank(owner);
-        token.approve(address(wallet), amount);
-        vm.stopPrank();
-
-        uint256 nonce = wallet.getNextNonce();
-        uint256 deadline = block.timestamp + 2 minutes;
-        bytes memory signature = _getSignature(address(token), owner, gasProvider, amount, nonce, deadline);
-
-        vm.startPrank(gasProvider);
-        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
-        vm.stopPrank();
-
-        assertEq(wallet.getTokenBalance(address(token)), 0);
-        assertEq(token.balanceOf(gasProvider), amount);
-    }
-
     function test_transferingTokensFailsIfCallerNotOwner() public {
         uint256 amount = 1 ether;
 
@@ -362,5 +173,305 @@ contract SimpleTokenWalletTest is GlobalHelper {
         emit ISimpleTokenWallet.TokensTransferredFrom(address(token), owner, amount, gasProvider);
         wallet.transferTokensFrom(address(token), owner, amount, gasProvider);
         vm.stopPrank();
+    }
+
+    function test_approvalFailsIfCallerIsNotOwner() public {
+        uint256 amount = 1 ether;
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, gasProvider));
+        wallet.approve(address(token), gasProvider, amount);
+        vm.stopPrank();
+    }
+
+    function test_approvalFailsIfTokenIsAddressZero() public {
+        uint256 amount = 1 ether;
+
+        vm.startPrank(owner);
+        vm.expectRevert(ISimpleTokenWallet.AddressZero.selector);
+        wallet.approve(address(0), gasProvider, amount);
+        vm.stopPrank();
+    }
+
+    function test_approvalFailsIfSpenderIsAddressZero() public {
+        uint256 amount = 1 ether;
+
+        vm.startPrank(owner);
+        vm.expectRevert(ISimpleTokenWallet.AddressZero.selector);
+        wallet.approve(address(token), address(0), amount);
+        vm.stopPrank();
+    }
+
+    function test_approvalSucceeds() public {
+        uint256 amount = 1 ether;
+
+        vm.startPrank(owner);
+        wallet.approve(address(token), gasProvider, amount);
+        vm.stopPrank();
+
+        assertEq(token.allowance(address(wallet), gasProvider), amount);
+    }
+
+    function test_approvalEmitsEvent() public {
+        uint256 amount = 1 ether;
+
+        vm.startPrank(owner);
+        vm.expectEmit(true, true, true, true);
+        emit ISimpleTokenWallet.Approved(address(token), gasProvider, amount);
+        wallet.approve(address(token), gasProvider, amount);
+        vm.stopPrank();
+    }
+
+    function test_withdrawingWithSignatureFailsIfInvalidSignaturePassed() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
+        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_withdrawingWithSignatureFailsIfInvalidNoncePassed() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce() + 1;
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
+        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_withdrawingWithSignatureFailsIfDeadlineHasPassed() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, false, nonce, deadline);
+
+        skip(deadlineWindow + 1);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
+        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_withdrawingTokensWithSignatureSucceeds() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        wallet.withdrawWithSignature(address(token), amount, nonce, deadline, signature);
+        vm.stopPrank();
+
+        assertEq(wallet.getTokenBalance(address(token)), 0);
+        assertEq(token.balanceOf(gasProvider), amount);
+    }
+
+    function test_transferingTokensWithSignatureFailsIfInvalidSignaturePassed() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
+        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensWithSignatureFailsIfInvalidNoncePassed() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce() + 1;
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
+        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensWithSignatureFailsIfDeadlineHasPassed() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, false, nonce, deadline);
+
+        skip(deadlineWindow + 1);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
+        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensWithSignatureSucceeds() public {
+        uint256 amount = 10 ether;
+        _depositToken(address(token), amount);
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), address(wallet), owner, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        wallet.transferTokensWithSignature(address(token), amount, owner, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensFromWithSignatureFailsIfInvalidSignaturePassed() public {
+        uint256 amount = 10 ether;
+        token.mint(owner, amount);
+        vm.startPrank(owner);
+        token.approve(address(wallet), amount);
+        vm.stopPrank();
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
+        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensFromWithSignatureFailsIfInvalidNoncePassed() public {
+        uint256 amount = 10 ether;
+        token.mint(owner, amount);
+        vm.startPrank(owner);
+        token.approve(address(wallet), amount);
+        vm.stopPrank();
+
+        uint256 nonce = wallet.getNextNonce() + 1;
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), owner, gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
+        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensFromWithSignatureFailsIfDeadlineHasPassed() public {
+        uint256 amount = 10 ether;
+        token.mint(owner, amount);
+        vm.startPrank(owner);
+        token.approve(address(wallet), amount);
+        vm.stopPrank();
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), owner, gasProvider, amount, false, nonce, deadline);
+
+        skip(deadlineWindow + 1);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
+        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_transferingTokensFromWithSignatureSucceeds() public {
+        uint256 amount = 10 ether;
+        token.mint(owner, amount);
+        vm.startPrank(owner);
+        token.approve(address(wallet), amount);
+        vm.stopPrank();
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature = _getSignature(address(token), owner, gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        wallet.transferTokensFromWithSignature(address(token), owner, amount, gasProvider, nonce, deadline, signature);
+        vm.stopPrank();
+
+        assertEq(wallet.getTokenBalance(address(token)), 0);
+        assertEq(token.balanceOf(gasProvider), amount);
+    }
+
+    function test_approvingWithSignatureFailsIfInvalidSignatureIsPassed() public {
+        uint256 amount = 10 ether;
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, false, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidSignature.selector, signature));
+        wallet.approveWithSignature(address(token), gasProvider, amount, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_approvingWithSignatureFailsIfInvalidNonceIsPassed() public {
+        uint256 amount = 10 ether;
+
+        uint256 nonce = wallet.getNextNonce() + 1;
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, true, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.InvalidNonce.selector, nonce, nonce - 1));
+        wallet.approveWithSignature(address(token), gasProvider, amount, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_approvingWithSignatureFailsIfDeadlineHasPassed() public {
+        uint256 amount = 10 ether;
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, true, nonce, deadline);
+
+        skip(deadlineWindow + 1);
+
+        vm.startPrank(gasProvider);
+        vm.expectRevert(abi.encodeWithSelector(ISimpleTokenWallet.DeadlinePassed.selector, deadline, block.timestamp));
+        wallet.approveWithSignature(address(token), gasProvider, amount, nonce, deadline, signature);
+        vm.stopPrank();
+    }
+
+    function test_approvingWithSignatureSucceeds() public {
+        uint256 amount = 10 ether;
+
+        uint256 nonce = wallet.getNextNonce();
+        uint256 deadline = block.timestamp + 2 minutes;
+        bytes memory signature =
+            _getSignature(address(token), address(wallet), gasProvider, amount, true, nonce, deadline);
+
+        vm.startPrank(gasProvider);
+        wallet.approveWithSignature(address(token), gasProvider, amount, nonce, deadline, signature);
+        vm.stopPrank();
+
+        assertEq(token.allowance(address(wallet), gasProvider), amount);
     }
 }

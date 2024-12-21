@@ -19,7 +19,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     using SafeERC20 for IERC20;
 
     bytes32 private constant TRANSFER_TYPE_HASH =
-        keccak256(bytes("Transfer(address token,address from,address to,uint256 amount)"));
+        keccak256(bytes("Transfer(address token,address from,address to,uint256 amount,bool isApproval)"));
 
     /// @dev The address of the wrapped native token contract.
     address private immutable i_wrappedNativeToken;
@@ -54,7 +54,40 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     /// @param _token The token address.
     /// @param _amount The amount of token to deposit.
     function withdraw(address _token, uint256 _amount) external onlyOwner {
-        transferTokens(_token, _amount, msg.sender);
+        _transferTokens(_token, _amount, msg.sender);
+    }
+
+    /// @notice Enables the owner to conduct a token transfer from this wallet.
+    /// @param _token The token address.
+    /// @param _amount The amount of token to deposit.
+    /// @param _to The token recipient.
+    function transferTokens(address _token, uint256 _amount, address _to) external onlyOwner {
+        _transferTokens(_token, _amount, _to);
+    }
+
+    /// @notice Enables the owner to use the token allowance provided to this wallet.
+    /// @param _token The token address.
+    /// @param _allowanceProvider The user whose tokens will be used for this trnasfer.
+    /// @param _amount The amount of token to deposit.
+    /// @param _to The token recipient.
+    function transferTokensFrom(
+        address _token,
+        address _allowanceProvider,
+        uint256 _amount,
+        address _to
+    )
+        external
+        onlyOwner
+    {
+        _transferTokensFrom(_token, _allowanceProvider, _amount, _to);
+    }
+
+    /// @notice Allows the owner to provide an allowance to the spender.
+    /// @param _token The token address.
+    /// @param _spender The user to provide a token allowance to.
+    /// @param _amount The amount of token to approve.
+    function approve(address _token, address _spender, uint256 _amount) external onlyOwner {
+        _approve(_token, _spender, _amount);
     }
 
     /// @notice Allows anyone to conduct a token withdrawal if they can present
@@ -74,7 +107,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     )
         external
     {
-        _checkSignature(_token, address(this), msg.sender, _amount, _nonce, _deadline, _signature);
+        _checkSignature(_token, address(this), msg.sender, _amount, false, _nonce, _deadline, _signature);
         _checkNonce(_nonce);
         _checkDeadline(_deadline);
 
@@ -99,7 +132,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     )
         external
     {
-        _checkSignature(_token, address(this), _to, _amount, _nonce, _deadline, _signature);
+        _checkSignature(_token, address(this), _to, _amount, false, _nonce, _deadline, _signature);
         _checkNonce(_nonce);
         _checkDeadline(_deadline);
 
@@ -126,36 +159,36 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     )
         external
     {
-        _checkSignature(_token, _allowanceProvider, _to, _amount, _nonce, _deadline, _signature);
+        _checkSignature(_token, _allowanceProvider, _to, _amount, false, _nonce, _deadline, _signature);
         _checkNonce(_nonce);
         _checkDeadline(_deadline);
 
         _transferTokensFrom(_token, _allowanceProvider, _amount, _to);
     }
 
-    /// @notice Enables the owner to conduct a token transfer from this wallet.
+    /// @notice Provides allowance to a spender if a valid signature is provided.
     /// @param _token The token address.
-    /// @param _amount The amount of token to deposit.
-    /// @param _to The token recipient.
-    function transferTokens(address _token, uint256 _amount, address _to) public onlyOwner {
-        _transferTokens(_token, _amount, _to);
-    }
-
-    /// @notice Enables the owner to use the token allowance provided to this wallet.
-    /// @param _token The token address.
-    /// @param _allowanceProvider The user whose tokens will be used for this trnasfer.
-    /// @param _amount The amount of token to deposit.
-    /// @param _to The token recipient.
-    function transferTokensFrom(
+    /// @param _spender The user to provide a token allowance to.
+    /// @param _amount The amount of token to approve.
+    /// @param _nonce A unique number that prevents replay attacks.
+    /// @param _deadline The UNIX timestamp (in seconds) after which this signature is
+    /// considered invalid.
+    /// @param _signature The owner's signature approving this transfer.
+    function approveWithSignature(
         address _token,
-        address _allowanceProvider,
+        address _spender,
         uint256 _amount,
-        address _to
+        uint256 _nonce,
+        uint256 _deadline,
+        bytes memory _signature
     )
-        public
-        onlyOwner
+        external
     {
-        _transferTokensFrom(_token, _allowanceProvider, _amount, _to);
+        _checkSignature(_token, address(this), _spender, _amount, true, _nonce, _deadline, _signature);
+        _checkNonce(_nonce);
+        _checkDeadline(_deadline);
+
+        _approve(_token, _spender, _amount);
     }
 
     /// @notice Internal function to conduct token trnasfer from the wallet to any other address.
@@ -191,11 +224,26 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
         emit TokensTransferredFrom(_token, _allowanceProvider, _amount, _to);
     }
 
+    /// @notice Internal function to approve tokens to a spender.
+    /// @dev Any amount can be approved, irrespective of whether the wallet holds that
+    /// amount of tokens or not.
+    /// @param _token The token address.
+    /// @param _spender The user to provide a token allowance to.
+    /// @param _amount The amount of token to approve.
+    function _approve(address _token, address _spender, uint256 _amount) internal {
+        if (_token == address(0) || _spender == address(0)) revert AddressZero();
+
+        IERC20(_token).approve(_spender, _amount);
+
+        emit Approved(_token, _spender, _amount);
+    }
+
     /// @notice Verifies the signature for gas sponsored transfers.
     /// @param _token The token address.
     /// @param _from The address to transfer the tokens from.
     /// @param _to The token recipient.
     /// @param _amount The amount of token to deposit.
+    /// @param _isApproval Differentiates a transfer operation with an approval operation.
     /// @param _nonce A unique number that prevents replay attacks.
     /// @param _deadline The UNIX timestamp (in seconds) after which this signature is
     /// considered invalid.
@@ -205,6 +253,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
         address _from,
         address _to,
         uint256 _amount,
+        bool _isApproval,
         uint256 _nonce,
         uint256 _deadline,
         bytes memory _signature
@@ -212,8 +261,9 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
         internal
         view
     {
-        address recoveredOwner =
-            ECDSA.recover(getEncodedTransferDataHash(_token, _from, _to, _amount, _nonce, _deadline), _signature);
+        address recoveredOwner = ECDSA.recover(
+            getEncodedTransferDataHash(_token, _from, _to, _amount, _isApproval, _nonce, _deadline), _signature
+        );
         if (recoveredOwner != owner()) revert InvalidSignature(_signature);
     }
 
@@ -261,6 +311,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     /// @param _from The address to transfer the tokens from.
     /// @param _to The token recipient.
     /// @param _amount The amount of token to deposit.
+    /// @param _isApproval Differentiates a transfer operation with an approval operation.
     /// @param _nonce A unique number that prevents replay attacks.
     /// @param _deadline The UNIX timestamp (in seconds) after which this signature is
     /// considered invalid.
@@ -270,6 +321,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
         address _from,
         address _to,
         uint256 _amount,
+        bool _isApproval,
         uint256 _nonce,
         uint256 _deadline
     )
@@ -278,7 +330,7 @@ contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
         returns (bytes32)
     {
         return _hashTypedDataV4(
-            keccak256(abi.encodePacked(TRANSFER_TYPE_HASH, _token, _from, _to, _amount, _nonce, _deadline))
+            keccak256(abi.encodePacked(TRANSFER_TYPE_HASH, _token, _from, _to, _amount, _isApproval, _nonce, _deadline))
         );
     }
 }
