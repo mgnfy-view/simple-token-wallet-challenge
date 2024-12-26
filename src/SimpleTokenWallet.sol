@@ -18,8 +18,11 @@ import { IWNative } from "./interfaces/IWNative.sol";
 contract SimpleTokenWallet is Ownable, EIP712, ISimpleTokenWallet {
     using SafeERC20 for IERC20;
 
-    bytes32 private constant TRANSFER_TYPE_HASH =
-        keccak256(bytes("Transfer(address token,address from,address to,uint256 amount,bool isApproval)"));
+    bytes32 private constant TRANSFER_TYPE_HASH = keccak256(
+        bytes(
+            "Transfer(address token,address from,address to,uint256 amount,bool isApproval,uint256 nonce,uint256 deadline)"
+        )
+    );
 
     /// @dev The address of the wrapped native token contract.
     address private immutable i_wrappedNativeToken;
